@@ -4,6 +4,8 @@
 using namespace std;
 using ll = long long;
 
+const ll INF = 1LL << 60;
+
 int N, L;
 ll S;
 vector<int> path[100010];
@@ -13,8 +15,9 @@ int upto[100010][20];   // iからの距離が2^kの祖先
 
 int ans = 0;
 
+// vを含む集合が、あといくつの要素を含めるか
 int dfs(int v) {
-    int up = 0;  // 各子を含む集合の「あといくつ含めるか」の最大値
+    int up = 0;  // 子の値の最大値
     for (int sv : path[v]) up = max(up, dfs(sv));
 
     if (up > 0) {
@@ -28,7 +31,7 @@ int dfs(int v) {
 
         int ret = 0;  // vを末端とする集合の最大可能サイズ
         ll cost = 0;
-        while (v > 0) {
+        while (v >= 0) {
             int k;
             for (k = 19; k >= 0; --k) {
                 if (upcost[v][k] + cost <= S) break;
@@ -39,14 +42,19 @@ int dfs(int v) {
             cost += upcost[v][k];
             v = upto[v][k];
         }
+
+        // サイズはL以下であることに注意
         return min(L, ret) - 1;
     }
 }
 
 int main() {
     cin >> N >> L >> S;
+
     for (int i = 0; i < N; ++i) {
         cin >> upcost[i][0];
+
+        // Sを超える重みの頂点が1つでもあればアウト
         if (upcost[i][0] > S) {
             cout << -1 << endl;
             return 0;
@@ -59,20 +67,22 @@ int main() {
         path[--upto[i][0]].push_back(i);
     }
 
+    // ダブリング
     for (int k = 1; k < 20; ++k) {
         for (int i = 0; i < N; ++i) {
-            upto[i][k] = upto[i][k - 1];
-            upcost[i][k] = upcost[i][k - 1];
-
             if (upto[i][k - 1] >= 0) {
                 upto[i][k] = upto[upto[i][k - 1]][k - 1];
-                upcost[i][k] += upcost[upto[i][k - 1]][k - 1];
+                upcost[i][k] = upcost[i][k - 1] + upcost[upto[i][k - 1]][k - 1];
+            } else {
+                // 0を超えて過剰に遡れないようにする
+                upto[i][k] = -1;
+                upcost[i][k] = INF;
             }
         }
     }
 
     dfs(0);
-    // 頂点0の集合を加える
+    // 頂点1の集合を加える
     cout << ans + 1 << endl;
     return 0;
 }
